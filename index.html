@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML 差异对比工具</title>
+    <title>HTML 差异对比工具 - SaaS BugBounty 版</title>
     <style>
         :root {
             --primary-color: #60bd90;
@@ -11,6 +11,8 @@
             --del-color: #f44336;
             --text-color: #333;
             --bg-color: #f5f5f5;
+            --noise-color: #9e9e9e;
+            --important-color: #ff9800;
         }
 
         * {
@@ -28,7 +30,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
@@ -37,6 +39,176 @@
             margin-bottom: 2rem;
         }
 
+        .header h1 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .header .subtitle {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* URL 抓取区域 */
+        .url-fetch-container {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .url-fetch-container h3 {
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .url-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .url-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .url-input-group label {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .url-input-wrapper {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .url-input-wrapper input {
+            flex: 1;
+            padding: 0.8rem;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .url-input-wrapper input:focus {
+            border-color: var(--primary-color);
+            outline: none;
+        }
+
+        /* 噪音标签过滤区域 */
+        .noise-filter-container {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .noise-filter-container h3 {
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            background: #fafafa;
+        }
+
+        .filter-tab:hover {
+            border-color: var(--primary-color);
+        }
+
+        .filter-tab.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .filter-tab.important {
+            border-color: var(--important-color);
+        }
+
+        .filter-tab.important.active {
+            background: var(--important-color);
+        }
+
+        .preset-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .preset-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--primary-color);
+            background: white;
+            color: var(--primary-color);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .noise-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            min-height: 40px;
+            padding: 0.8rem;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+
+        .noise-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.3rem 0.7rem;
+            background: #e0e0e0;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            cursor: default;
+        }
+
+        .noise-tag.script { background: #ffcdd2; color: #c62828; }
+        .noise-tag.style { background: #fff3e0; color: #e65100; }
+        .noise-tag.nav { background: #e3f2fd; color: #1565c0; }
+        .noise-tag.comment { background: #f3e5f5; color: #7b1fa2; }
+        .noise-tag.meta { background: #e8f5e9; color: #2e7d32; }
+        .noise-tag.hidden { background: #cfd8dc; color: #455a64; }
+        .noise-tag.form { background: #fce4ec; color: #ad1457; }
+
+        .noise-tag .remove {
+            cursor: pointer;
+            font-weight: bold;
+            opacity: 0.6;
+        }
+
+        .noise-tag .remove:hover {
+            opacity: 1;
+        }
+
+        /* 主内容区域 */
         .diff-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -61,6 +233,7 @@
             gap: 1rem;
             justify-content: center;
             margin: 1.5rem 0;
+            flex-wrap: wrap;
         }
 
         .btn {
@@ -71,11 +244,30 @@
             transition: all 0.2s;
             background-color: var(--primary-color);
             color: white;
+            font-size: 0.95rem;
         }
 
         .btn:hover {
             opacity: 0.9;
             transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn.secondary {
+            background-color: #757575;
+        }
+
+        .btn.fetch {
+            background-color: var(--important-color);
+        }
+
+        .btn.fetch:hover {
+            background-color: #f57c00;
         }
 
         .result-container {
@@ -85,6 +277,31 @@
             border-radius: 6px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .result-stats {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .stat.added { color: var(--ins-color); }
+        .stat.removed { color: var(--del-color); }
+        .stat.noise { color: var(--noise-color); }
 
         ins {
             background-color: #e8f5e9;
@@ -102,24 +319,16 @@
             border-radius: 3px;
         }
 
-        .github-corner {
-            position: absolute;
-            top: 0;
-            right: 0;
-        }
-
-        .github-corner:hover .octo-arm {
-            animation: octocat-wave 560ms ease-in-out;
-        }
-
-        @keyframes octocat-wave {
-            0%, 100% { transform: rotate(0); }
-            20%, 60% { transform: rotate(-25deg); }
-            40%, 80% { transform: rotate(10deg); }
+        .noise-content {
+            background-color: #f5f5f5;
+            color: var(--noise-color);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-size: 0.9em;
         }
 
         @media (max-width: 768px) {
-            .diff-container {
+            .diff-container, .url-inputs {
                 grid-template-columns: 1fr;
             }
             
@@ -139,9 +348,9 @@
         }
         
         .side-by-side .version-container {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
         .side-by-side .version {
@@ -157,68 +366,135 @@
             border-radius: 6px;
             background: white;
             overflow-x: auto;
-
-        
         }
 
-        /* 新增的样式 */
-    table {
-        width: 100%; /* 固定表格宽度 */
-        border-collapse: collapse; /* 合并表格边框 */
-    }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
 
-    th, td {
-        border: 1px solid #ddd; /* 添加边框 */
-        padding: 8px; /* 添加内边距 */
-        color: black;
-        width: 150px; /* 设置文字颜色为黑色 */
-    }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            color: black;
+        }
 
-    th {
-        background-color: var(--primary-color); /* 设置表头背景颜色 */
-        color: white; /* 设置表头文字颜色 */
-        text-align: center; /* 设置表头文字居中 */
-    }
-        /* 覆盖表格中的 ins 和 del 样式 删除可高亮差异部分*/
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+        }
+
         table ins, table del {
-        background-color: transparent;
-        color: inherit;
-        text-decoration: none;
-        padding: 0;
-        border-radius: 0;
-    }
+            background-color: transparent;
+            color: inherit;
+            text-decoration: none;
+            padding: 0;
+            border-radius: 0;
+        }
+
+        /* 加载状态 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-msg {
+            color: var(--del-color);
+            padding: 1rem;
+            background: #ffebee;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+
+        .success-msg {
+            color: var(--ins-color);
+            padding: 1rem;
+            background: #e8f5e9;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header class="header">
             <h1>HTML 差异对比工具</h1>
+            <p class="subtitle">SaaS BugBounty - 智能过滤噪音标签 + 自动抓取页面</p>
         </header>
 
-        <div class="diff-container">
-            <textarea 
-                id="oldHtml" 
-                placeholder="在此粘贴原始HTML内容..."
-                spellcheck="false"
-            ><div>Hamlet: Do you see yonder cloud that's almost in shape of a camel?
-                <p>Polonius: By the mass, and 'tis like a camel, indeed.</p>
-                Hamlet: Methinks it is like a weasel.
-                Polonius: It is backed like a weasel.
-                Hamlet: Or like a whale?
-                Polonius: Very like a whale.
-                -- Shakespeare</div></textarea>
+        <!-- URL 抓取区域 -->
+        <div class="url-fetch-container">
+            <h3>自动获取 HTML</h3>
+            <div class="url-inputs">
+                <div class="url-input-group">
+                    <label>原始版本 URL:</label>
+                    <div class="url-input-wrapper">
+                        <input type="url" id="oldUrl" placeholder="https://docs.gitlab.com/ee/user/permissions.html">
+                        <button class="btn fetch" id="fetchOldBtn">抓取</button>
+                    </div>
+                </div>
+                <div class="url-input-group">
+                    <label>新版本 URL:</label>
+                    <div class="url-input-wrapper">
+                        <input type="url" id="newUrl" placeholder="https://docs.gitlab.com/ee/user/permissions.html">
+                        <button class="btn fetch" id="fetchNewBtn">抓取</button>
+                    </div>
+                </div>
+            </div>
+            <p style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">
+                提示: 抓取的页面会自动应用噪音标签过滤，也可以手动粘贴 HTML 内容
+            </p>
+        </div>
+
+        <!-- 噪音标签过滤区域 -->
+        <div class="noise-filter-container">
+            <h3>智能过滤噪音标签</h3>
             
-            <textarea 
-                id="newHtml" 
-                placeholder="在此粘贴修改后的HTML内容..."
-                spellcheck="false"
-            ><div>Hamlet: Do you see the cloud over there that's almost the shape of a camel?
-                  <div>Polonius: By golly, it is like a camel, indeed.</div>
-                  Hamlet: I think it looks like a weasel.
-                  <p>Polonius: It is shaped like a weasel.</p>          Hamlet: Or like a whale?
-                  Polonius: It's totally like a whale.
-                  -- Shakespeare
-                </div></textarea>
+            <div class="preset-buttons">
+                <button class="preset-btn" data-preset="bugbounty">BugBounty 预设</button>
+                <button class="preset-btn" data-preset="minimal">最小过滤</button>
+                <button class="preset-btn" data-preset="aggressive">强力过滤</button>
+                <button class="preset-btn" data-preset="docs">文档对比预设</button>
+            </div>
+
+            <div class="filter-tabs">
+                <span class="filter-tab important active" data-type="script">Scripts (JS)</span>
+                <span class="filter-tab important active" data-type="style">Styles (CSS)</span>
+                <span class="filter-tab" data-type="nav">Nav/Navbar</span>
+                <span class="filter-tab" data-type="footer">Footer</span>
+                <span class="filter-tab" data-type="header">Header</span>
+                <span class="filter-tab important active" data-type="comment">Comments</span>
+                <span class="filter-tab important active" data-type="meta">Meta/Head</span>
+                <span class="filter-tab" data-type="hidden">Hidden Elements</span>
+                <span class="filter-tab" data-type="form">Forms</span>
+                <span class="filter-tab" data-type="iframe">Iframes</span>
+                <span class="filter-tab" data-type="svg">SVG Icons</span>
+                <span class="filter-tab" data-type="noscript">Noscript</span>
+            </div>
+
+            <p style="font-size: 0.85rem; margin-bottom: 0.5rem;">已启用的过滤器:</p>
+            <div class="noise-list" id="noiseList">
+                <span class="noise-tag script"><span>script</span></span>
+                <span class="noise-tag style"><span>style</span></span>
+                <span class="noise-tag comment"><span>&lt;!-- --&gt;</span></span>
+                <span class="noise-tag meta"><span>meta/head</span></span>
+            </div>
+        </div>
+
+        <div class="diff-container">
+            <textarea id="oldHtml" placeholder="在此粘贴原始HTML内容，或使用上方URL抓取..." spellcheck="false"></textarea>
+            <textarea id="newHtml" placeholder="在此粘贴修改后的HTML内容，或使用上方URL抓取..." spellcheck="false"></textarea>
         </div>
 
         <div class="controls">
@@ -227,47 +503,159 @@
             <button class="btn" data-mode="added">增加部分</button>
             <button class="btn" data-mode="removed">减少部分</button>
             <button class="btn" data-mode="marked">多汁差异</button>
+            <button class="btn secondary" id="clearBtn">清空</button>
         </div>
 
         <div id="result" class="result-container"></div>
     </div>
 
-    <a href="https://github.com/Hiroki-Sawada-y/HtmlDiff/" class="github-corner" aria-label="查看GitHub源码">
-        <svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true">
-            <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
-            <path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" 
-                  fill="currentColor" 
-                  class="octo-arm"></path>
-            <path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" 
-                  fill="currentColor" 
-                  class="octo-body"></path>
-        </svg>
-    </a>
-
     <script src="lib/diff_match_patch.js"></script>
     <script src="js/htmldiff.js"></script>
     <script src="js/htmldiff2.js"></script>
     <script>
+        /**
+         * 噪音标签配置
+         * 每个配置项包含:
+         * - type: 标签类型
+         * - tags: 要过滤的标签数组
+         * - selectors: CSS 选择器
+         * - description: 描述
+         */
+        const NOISE_CONFIGS = {
+            script: {
+                tags: ['script', 'noscript'],
+                selectors: ['[type="text/javascript"]', 'script[type]'],
+                description: 'JavaScript 代码'
+            },
+            style: {
+                tags: ['style'],
+                selectors: ['style', '[rel="stylesheet"]', 'link[href*=".css"]'],
+                description: 'CSS 样式'
+            },
+            nav: {
+                tags: ['nav', 'menu', 'sidebar', 'aside'],
+                selectors: ['nav', '.nav', '#nav', '[role="navigation"]', '.sidebar', '#sidebar', 'aside'],
+                description: '导航栏/侧边栏'
+            },
+            footer: {
+                tags: ['footer'],
+                selectors: ['footer', '.footer', '#footer'],
+                description: '页脚'
+            },
+            header: {
+                tags: ['header'],
+                selectors: ['header', '.header', '#header', '[role="banner"]'],
+                description: '页头'
+            },
+            comment: {
+                tags: ['!--'],
+                selectors: [],
+                description: 'HTML 注释',
+                isSpecial: true
+            },
+            meta: {
+                tags: ['meta', 'link', 'title', 'base', 'head'],
+                selectors: ['meta', 'link', 'title', 'base', 'head', '!DOCTYPE'],
+                description: 'Meta/Head 元素'
+            },
+            hidden: {
+                tags: [],
+                selectors: ['[hidden]', '[style*="display: none"]', '[style*="display:none"]', '[aria-hidden="true"]', '.hidden', '#hidden'],
+                description: '隐藏元素'
+            },
+            form: {
+                tags: ['form', 'input', 'button', 'select', 'textarea'],
+                selectors: ['form', 'input:not([type="hidden"])', 'button[type="submit"]', '.search', '#search'],
+                description: '表单元素'
+            },
+            iframe: {
+                tags: ['iframe'],
+                selectors: ['iframe', 'embed', 'object'],
+                description: '嵌入内容'
+            },
+            svg: {
+                tags: ['svg'],
+                selectors: ['svg', 'symbol', 'use'],
+                description: 'SVG 图标'
+            },
+            noscript: {
+                tags: ['noscript'],
+                selectors: ['noscript'],
+                description: 'Noscript 标签'
+            }
+        };
+
+        /**
+         * 预设配置
+         */
+        const PRESETS = {
+            bugbounty: {
+                name: 'BugBounty 预设',
+                active: ['script', 'style', 'comment', 'meta', 'nav', 'footer', 'hidden', 'noscript'],
+                description: '专注于文档内容变更，适合分析权限变化'
+            },
+            minimal: {
+                name: '最小过滤',
+                active: ['script', 'style', 'comment'],
+                description: '只移除明显的技术性标签'
+            },
+            aggressive: {
+                name: '强力过滤',
+                active: ['script', 'style', 'comment', 'meta', 'nav', 'footer', 'header', 'hidden', 'form', 'iframe', 'svg', 'noscript'],
+                description: '保留最少内容，只看正文'
+            },
+            docs: {
+                name: '文档对比预设',
+                active: ['script', 'style', 'comment', 'meta', 'nav', 'footer', 'header', 'noscript'],
+                description: '适合对比 API 文档、帮助文档'
+            }
+        };
+
         class DiffTool {
             constructor() {
                 this.oldHtmlElement = document.getElementById('oldHtml');
                 this.newHtmlElement = document.getElementById('newHtml');
                 this.resultElement = document.getElementById('result');
+                this.noiseListElement = document.getElementById('noiseList');
+                
+                this.activeFilters = new Set(['script', 'style', 'comment', 'meta']);
+                this.diffEngine = null;
+                this.combinedDiffEngine = null;
+                
                 this.init();
             }
 
             init() {
-                this.setupEventListeners();
                 this.diffEngine = new HtmlDiff();
                 this.combinedDiffEngine = new HtmlDiff2();
+                this.setupEventListeners();
+                this.updateNoiseList();
             }
 
             setupEventListeners() {
-                document.querySelectorAll('.btn').forEach(btn => {
+                // 模式切换按钮
+                document.querySelectorAll('.btn[data-mode]').forEach(btn => {
                     btn.addEventListener('click', () => this.handleDiff(btn.dataset.mode));
                 });
 
-                // 添加防抖处理
+                // 清空按钮
+                document.getElementById('clearBtn').addEventListener('click', () => this.clearAll());
+
+                // URL 抓取按钮
+                document.getElementById('fetchOldBtn').addEventListener('click', () => this.fetchUrl('old'));
+                document.getElementById('fetchNewBtn').addEventListener('click', () => this.fetchUrl('new'));
+
+                // 预设按钮
+                document.querySelectorAll('.preset-btn').forEach(btn => {
+                    btn.addEventListener('click', () => this.applyPreset(btn.dataset.preset));
+                });
+
+                // 过滤器标签
+                document.querySelectorAll('.filter-tab').forEach(tab => {
+                    tab.addEventListener('click', () => this.toggleFilter(tab.dataset.type));
+                });
+
+                // 防抖处理
                 let timeout;
                 [this.oldHtmlElement, this.newHtmlElement].forEach(textarea => {
                     textarea.addEventListener('input', () => {
@@ -277,13 +665,228 @@
                 });
             }
 
+            /**
+             * 过滤噪音 HTML
+             */
+            filterNoise(html) {
+                let filtered = html;
+
+                // 过滤注释
+                if (this.activeFilters.has('comment')) {
+                    filtered = filtered.replace(/<!--[\s\S]*?-->/g, '');
+                }
+
+                // 解析 HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(filtered, 'text/html');
+
+                // 收集要移除的元素
+                const toRemove = new Set();
+
+                // 按过滤器类型处理
+                this.activeFilters.forEach(filterType => {
+                    const config = NOISE_CONFIGS[filterType];
+                    if (!config) return;
+
+                    // 处理标签
+                    config.tags.forEach(tag => {
+                        if (tag === '!--') return; // 注释已单独处理
+                        doc.querySelectorAll(tag).forEach(el => toRemove.add(el));
+                    });
+
+                    // 处理选择器
+                    config.selectors.forEach(selector => {
+                        try {
+                            doc.querySelectorAll(selector).forEach(el => toRemove.add(el));
+                        } catch (e) {
+                            // 忽略无效选择器
+                        }
+                    });
+                });
+
+                // 移除元素
+                toRemove.forEach(el => {
+                    if (el.parentNode) {
+                        el.parentNode.removeChild(el);
+                    }
+                });
+
+                // 返回过滤后的 HTML
+                return doc.body ? doc.body.innerHTML : '';
+            }
+
+            /**
+             * 获取忽略标签配置 (用于 diff 引擎)
+             */
+            getIgnoreTags() {
+                const ignoreTags = [];
+                
+                this.activeFilters.forEach(filterType => {
+                    const config = NOISE_CONFIGS[filterType];
+                    if (!config) return;
+
+                    config.tags.forEach(tag => {
+                        if (tag === '!--') {
+                            ignoreTags.push({ openTag: '!--', closeTag: '--' });
+                        } else {
+                            ignoreTags.push({ openTag: tag, closeTag: '/' + tag.replace(/\[.*\]/, '') });
+                        }
+                    });
+                });
+
+                return ignoreTags;
+            }
+
+            /**
+             * 切换过滤器
+             */
+            toggleFilter(type) {
+                const tab = document.querySelector(`.filter-tab[data-type="${type}"]`);
+                
+                if (this.activeFilters.has(type)) {
+                    this.activeFilters.delete(type);
+                    tab.classList.remove('active');
+                } else {
+                    this.activeFilters.add(type);
+                    tab.classList.add('active');
+                }
+                
+                this.updateNoiseList();
+            }
+
+            /**
+             * 应用预设
+             */
+            applyPreset(presetName) {
+                const preset = PRESETS[presetName];
+                if (!preset) return;
+
+                // 重置所有过滤器
+                document.querySelectorAll('.filter-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                this.activeFilters.clear();
+
+                // 应用预设
+                preset.active.forEach(type => {
+                    this.activeFilters.add(type);
+                    const tab = document.querySelector(`.filter-tab[data-type="${type}"]`);
+                    if (tab) tab.classList.add('active');
+                });
+
+                this.updateNoiseList();
+            }
+
+            /**
+             * 更新噪音标签显示
+             */
+            updateNoiseList() {
+                const tags = [];
+                
+                this.activeFilters.forEach(type => {
+                    const config = NOISE_CONFIGS[type];
+                    if (config) {
+                        const displayName = config.tags[0] || type;
+                        const cssClass = ['script', 'style', 'nav', 'comment', 'meta', 'hidden', 'form'].includes(type) ? type : '';
+                        tags.push(`<span class="noise-tag ${cssClass}"><span>${displayName}</span></span>`);
+                    }
+                });
+
+                this.noiseListElement.innerHTML = tags.join('') || '<span style="color:#999">无过滤器</span>';
+            }
+
+            /**
+             * 从 URL 抓取 HTML
+             */
+            async fetchUrl(version) {
+                const urlInput = document.getElementById(version === 'old' ? 'oldUrl' : 'newUrl');
+                const textarea = version === 'old' ? this.oldHtmlElement : this.newHtmlElement;
+                const btn = document.getElementById(version === 'old' ? 'fetchOldBtn' : 'fetchNewBtn');
+                
+                const url = urlInput.value.trim();
+                if (!url) {
+                    this.showMessage('请输入 URL', 'error');
+                    return;
+                }
+
+                const originalText = btn.textContent;
+                btn.innerHTML = '<span class="loading"></span>';
+                btn.disabled = true;
+
+                try {
+                    // 使用 CORS 代理 (公共代理)
+                    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+                    const response = await fetch(proxyUrl);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    let html = await response.text();
+                    
+                    // 应用噪音过滤
+                    html = this.filterNoise(html);
+                    
+                    textarea.value = html;
+                    this.showMessage('抓取成功！已自动过滤噪音标签', 'success');
+                } catch (error) {
+                    this.showMessage(`抓取失败: ${error.message}`, 'error');
+                } finally {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                }
+            }
+
+            /**
+             * 显示消息
+             */
+            showMessage(msg, type = 'info') {
+                // 移除旧消息
+                const oldMsg = document.querySelector('.message-toast');
+                if (oldMsg) oldMsg.remove();
+
+                const toast = document.createElement('div');
+                toast.className = `message-toast ${type === 'error' ? 'error-msg' : 'success-msg'}`;
+                toast.textContent = msg;
+                toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:1000;max-width:300px;animation:fadeIn 0.3s';
+                
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.style.animation = 'fadeOut 0.3s';
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+
+            /**
+             * 清空所有
+             */
+            clearAll() {
+                this.oldHtmlElement.value = '';
+                this.newHtmlElement.value = '';
+                this.resultElement.innerHTML = '';
+                document.getElementById('oldUrl').value = '';
+                document.getElementById('newUrl').value = '';
+            }
+
             async handleDiff(mode) {
                 try {
-                    const oldContent = this.oldHtmlElement.value;
-                    const newContent = this.newHtmlElement.value;
-                    
+                    let oldContent = this.oldHtmlElement.value;
+                    let newContent = this.newHtmlElement.value;
+
+                    if (!oldContent && !newContent) {
+                        this.resultElement.innerHTML = '<p style="text-align:center;color:#999;">请输入 HTML 内容或使用 URL 抓取</p>';
+                        return;
+                    }
+
+                    // 配置 diff 引擎的忽略标签
+                    const ignoreTags = this.getIgnoreTags();
+                    this.diffEngine.ignore_tag = ignoreTags;
+                    this.combinedDiffEngine.ignore_tag = ignoreTags;
+
                     let resultHTML = '';
-                    
+                    let stats = { added: 0, removed: 0, noise: 0 };
+
                     switch(mode) {
                         case 'side':
                             resultHTML = this.generateSideBySideDiff(oldContent, newContent);
@@ -305,12 +908,32 @@
                             break;
                     }
 
-                    this.resultElement.innerHTML = resultHTML;
+                    // 计算统计
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = resultHTML;
+                    stats.added = tempDiv.querySelectorAll('ins').length;
+                    stats.removed = tempDiv.querySelectorAll('del').length;
+
+                    this.resultElement.innerHTML = this.wrapWithStats(resultHTML, stats);
                     this.highlightDifferences();
                 } catch (error) {
                     console.error('差异计算出错:', error);
-                    this.resultElement.innerHTML = `<div class="error">错误: ${error.message}</div>`;
+                    this.resultElement.innerHTML = `<div class="error-msg">错误: ${error.message}</div>`;
                 }
+            }
+
+            wrapWithStats(html, stats) {
+                return `
+                    <div class="result-header">
+                        <h3>对比结果</h3>
+                        <div class="result-stats">
+                            <span class="stat added">+ ${stats.added} 处增加</span>
+                            <span class="stat removed">- ${stats.removed} 处删除</span>
+                            <span class="stat noise">${this.activeFilters.size} 个过滤器</span>
+                        </div>
+                    </div>
+                    ${html}
+                `;
             }
 
             generateSideBySideDiff(oldContent, newContent) {
@@ -342,10 +965,7 @@
                     .map(el => this.cleanLine(el.outerHTML))
                     .join('<br>');
 
-                return `
-                    <h3>增加部分</h3>
-                    <div class="diff-content">${addedContent}</div>
-                `;
+                return `<h3>增加部分</h3><div class="diff-content">${addedContent || '无增加内容'}</div>`;
             }
 
             generateRemovedContent(oldContent, newContent) {
@@ -356,101 +976,80 @@
                     .map(el => this.cleanLine(el.outerHTML))
                     .join('<br>');
 
-                return `
-                    <h3>减少部分</h3>
-                    <div class="diff-content">${removedContent}</div>
-                `;
+                return `<h3>减少部分</h3><div class="diff-content">${removedContent || '无删除内容'}</div>`;
             }
 
-           /**
- * 生成标记差异 HTML
- * 
- * @param {string} oldContent - 原始内容
- * @param {string} newContent - 新内容
- * 
- * @return {string} 标记差异 HTML
- */
- generateMarkedDiff(oldContent, newContent) {
-  // 生成差异 HTML
-  const { oldDiffHtml, newDiffHtml } = this.diffEngine.diff_launch(oldContent, newContent);
-  
-  // 解析 HTML 字符串为文档对象
-  const oldDoc = new DOMParser().parseFromString(oldDiffHtml, 'text/html');
-  const newDoc = new DOMParser().parseFromString(newDiffHtml, 'text/html');
-  
-  // 用于存储已标记的元素，避免重复
-  const markedElements = {};
-  
-  // 处理增加的部分
-  const addedChanges = Array.from(newDoc.querySelectorAll('ins'))
-    .filter(el => el.textContent.trim().length > 1 || el.textContent.trim() === '✓') // 忽略单个字符的增加（除了✓）
-    .map(el => el.closest('tr, p, h1, h2,h3,span,div, li')) // 获取包含差异的最近的父元素
-    .filter(parent => {
-      const key = parent.outerHTML;
-      if (parent && parent.textContent.trim().includes('✓') && !markedElements[key] && key.includes('<tr>')) {
-        markedElements[key] = true; // 标记父元素
-        return true;
-      }
-      return false;
-    })
-    .map(parent => parent.outerHTML.replace("", "").replace(";","")) // 替换 &nbsp; 为空格
-    .join(''); // 合并为字符串
+            generateMarkedDiff(oldContent, newContent) {
+                const { oldDiffHtml, newDiffHtml } = this.diffEngine.diff_launch(oldContent, newContent);
+                const oldDoc = new DOMParser().parseFromString(oldDiffHtml, 'text/html');
+                const newDoc = new DOMParser().parseFromString(newDiffHtml, 'text/html');
+                
+                const markedElements = {};
+                
+                const getParentRow = (el) => {
+                    const parent = el.closest('tr, p, h1, h2, h3, h4, h5, h6, div, li');
+                    return parent;
+                };
 
+                const extractChanges = (doc, type) => {
+                    const tagName = type === 'ins' ? 'ins' : 'del';
+                    return Array.from(doc.querySelectorAll(tagName))
+                        .filter(el => el.textContent.trim().length > 0)
+                        .map(el => getParentRow(el))
+                        .filter(parent => parent && parent.outerHTML)
+                        .map(parent => {
+                            const key = parent.outerHTML.substring(0, 200);
+                            if (!markedElements[key]) {
+                                markedElements[key] = true;
+                                return parent.outerHTML;
+                            }
+                            return null;
+                        })
+                        .filter(Boolean)
+                        .join('');
+                };
 
-    
-  // 处理减少的部分
-  const removedChanges = Array.from(newDoc.querySelectorAll('del'))
-    .filter(el => el.textContent.trim().length > 1 || el.textContent.trim() === '✓') // 忽略单个字符的增加（除了✓）
-    .map(el => el.closest('tr, p, h1, h2,h3,span,div, li')) // 获取包含差异的最近的父元素
-    .filter(parent => {
-      const key = parent.outerHTML;
-      if (parent && parent.textContent.trim().includes('✓') && !markedElements[key] && key.includes('<tr>')) {
-        markedElements[key] = true; // 标记父元素
-        return true;
-      }
-      return false;
-    })
-    .map(parent => parent.outerHTML.replace(";", '')) // 替换 &nbsp; 为空格
-    .join(''); // 合并为字符串
-  /**
-   * 返回标记差异 HTML
-   */
-  return `
-    <h3>标记差异</h3>
-    <h3>增加</h3>
-    <table width="100%" border="1" cellspacing="1" cellpadding="4"  class="tabtop13" align="center">
-        <tr>
-            <td>新增功能</td>
-            <td>Guest</td>
-            <td>Reporter</td>
-            <td>Developer</td>
-            <td>Maintainer</td>
-            <td>Owner</td>
-            <td>备注</td>
-        </tr>
-    ${addedChanges}
-    </table>
-    <h3>减少</h3>
-    <table width="100%" border="1" cellspacing="1" cellpadding="4"  class="tabtop13" align="center">
-        <tr>
-            <td>减少功能</td>
-            <td>Guest</td>
-            <td>Reporter</td>
-            <td>Developer</td>
-            <td>Maintainer</td>
-            <td>Owner</td>
-            <td>备注</td>
-        </tr>
-    ${removedChanges}
-    </table>
-  `;
-}
+                const addedChanges = extractChanges(newDoc, 'ins');
+                const removedChanges = extractChanges(oldDoc, 'del');
+
+                return `
+                    <h3>标记差异</h3>
+                    ${addedChanges ? `
+                    <h4 style="color:var(--ins-color)">新增/修改</h4>
+                    <table width="100%" border="1" cellspacing="1" cellpadding="4">
+                        <tr>
+                            <td>功能</td>
+                            <td>Guest</td>
+                            <td>Reporter</td>
+                            <td>Developer</td>
+                            <td>Maintainer</td>
+                            <td>Owner</td>
+                            <td>备注</td>
+                        </tr>
+                        ${addedChanges}
+                    </table>` : '<p>无新增/修改</p>'}
+                    
+                    ${removedChanges ? `
+                    <h4 style="color:var(--del-color);margin-top:1.5rem">删除</h4>
+                    <table width="100%" border="1" cellspacing="1" cellpadding="4">
+                        <tr>
+                            <td>功能</td>
+                            <td>Guest</td>
+                            <td>Reporter</td>
+                            <td>Developer</td>
+                            <td>Maintainer</td>
+                            <td>Owner</td>
+                            <td>备注</td>
+                        </tr>
+                        ${removedChanges}
+                    </table>` : ''}
+                `;
+            }
 
             cleanLine(html) {
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = html;
                 
-                // 移除空标签
                 Array.from(tempDiv.querySelectorAll('ins, del')).forEach(el => {
                     if (!el.textContent.trim()) el.remove();
                 });
@@ -459,7 +1058,6 @@
             }
 
             highlightDifferences() {
-                // 添加交互动画
                 document.querySelectorAll('ins, del').forEach(el => {
                     el.style.transition = 'all 0.3s';
                     el.addEventListener('mouseenter', () => {
@@ -473,6 +1071,14 @@
                 });
             }
         }
+
+        // 添加淡出动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+            @keyframes fadeOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-10px); } }
+        `;
+        document.head.appendChild(style);
 
         // 初始化工具
         document.addEventListener('DOMContentLoaded', () => new DiffTool());
